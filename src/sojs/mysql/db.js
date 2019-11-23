@@ -25,7 +25,9 @@ sojs.define({
         var gOption = {
             poolOn: false,
             pool: poolOptions,
-            connection: connectionOptions
+            connection: connectionOptions,
+            // if set to false, every query return (new Promise)
+            returnSojsPromise: true
         };
         this.options = gOption;
     },
@@ -59,12 +61,30 @@ sojs.define({
         return sojs.create('sojs.mysql.query', this);
     },
     execute: function (sql, values) {
+        var self = this;
         // use this.connection
-        this.connection.connect();
+        self.connection.connect();
         // pool.query = pool.getConnection() -> connection.query()
         // -> connection.release()
         console.log('execute sql : ' + sql);
         console.log('binding values : ' + values);
-        this.close();
+        function queryCallback(resolve, reject) {
+            self.query(sql, values, function (err, result, fields) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);   
+                }
+            });
+            self.end();
+        }
+        if (self.options.returnSojsPromise) {
+            return sojs.create('sojs.promise', queryCallback);
+        }
+        return new Promise(function (resolve, reject) {
+            self.query(sql, values, queryCallback);
+            self.end();
+        });
+        
     }
 });
