@@ -1,6 +1,8 @@
 require('sojs');
 var DB = sojs.using('sojs.mysql.db');
 
+DB.connect('test');
+
 DB.table('user').select(['name', 'id']).where('name', 'rjy').where('id', 1).get();
 DB.table('user').select('name').where('create_time', new Date()).get();
 

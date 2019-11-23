@@ -66,7 +66,18 @@ sojs.define({
     },
     having: function (field, opr, value) {
         // 如果有group, 生成的顺序要在group by 之后
-        
+        var index = -1;
+        for (var i = 0; i < this.others.length; i ++) {
+            if (/GROUP BY/.test(this.others[i])) {
+                index = i;
+                break;
+            }
+        }
+        if (index != -1) {
+            var statement = 'HAVING ' + field + ' '
+            + opr + ' ' + this.sqlstring.escape(value);
+            this.others.splice(index + 1, 0, statement);
+        }
     },
     buildJoin: function (item) {
         return item.prefix + ' JOIN ' + item.table + ' ON '
@@ -112,7 +123,7 @@ sojs.define({
         }
         var update = [];
         for (var i = 0; i < fields.length; i ++) {
-            update.push(fields[i] + ' = ' + this.sqlstring(values[i]));
+            update.push(fields[i] + ' = ' + this.sqlstring.escape(values[i]));
         }
         update = update.join(',');
         var sql = 'UPDATE {table} SET {update} WHERE {conditions}';
@@ -133,7 +144,7 @@ sojs.define({
         var values = [];
         for (var key in obj) {
             fields.push('`' + key + '`');
-            values.push(this.sqlstring(obj[key]));
+            values.push(this.sqlstring.escape(obj[key]));
         }
         fields = fields.join(',');
         fields = '(' + field + ')';

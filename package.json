@@ -1,12 +1,15 @@
 {
-    "name": "sojs-mysql",
-    "version": "0.0.1",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-      "test": "node test.js"
-    },
-    "author": "",
-    "license": "ISC"
+  "name": "sojs-mysql",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mysql": "^2.17.1",
+    "sojs": "^1.4.6"
   }
-  
+}
