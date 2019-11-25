@@ -2,11 +2,11 @@
   "name": "sojs-mysql",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "./src/module.js",
   "scripts": {
     "test": "node test.js"
   },
-  "author": "",
+  "author": "ranjiayu",
   "license": "ISC",
   "dependencies": {
     "mysql": "^2.17.1",

@@ -23,7 +23,7 @@ sojs.define({
         var connectionOptions = Object.assign(
             {}, defaultConnectionOptions, options.connection);
         var gOption = {
-            poolOn: false,
+            poolOn: options.poolOn || false,
             pool: poolOptions,
             connection: connectionOptions,
             // if set to false, every query return (new Promise)
@@ -31,13 +31,18 @@ sojs.define({
         };
         this.options = gOption;
     },
-    $db: function (options) {
+    db: function (options) {
         this.setOption(options);
     },
     connect: function (dbName) {
-        this.connection = null;
-        this.options.connectionOptions['database'] = dbName;
+        var connection;
+        dbName = dbName || this.options.connection.database;
+        this.options.connection['database'] = dbName;
         if (this.options.poolOn === true) {
+            // if use connection pool, return the Pool instance.
+            if (this.connection != undefined) {
+                return this.connection;
+            }
             var pool = this.mysql.createPool(
                 Object.assign({}, this.options.pool, this.options.connection));
             pool.on('release', function (c) {
@@ -47,12 +52,12 @@ sojs.define({
                 console.log('Waiting for available connection slot')
             });
             this.connection = pool;
+            return pool;
         } else {
-            this.connection = this.mysql.createConnection(this.options.connection);
+            // every query need a new Connection instance.
+            connection = this.mysql.createConnection(this.options.connection);
+            return connection;
         }
-    },
-    close: function () {
-        this.connection.end();
     },
     table: function (tableName) {
         return this.query().from(tableName);
@@ -62,29 +67,26 @@ sojs.define({
     },
     execute: function (sql, values) {
         var self = this;
-        // use this.connection
-        self.connection.connect();
-        // pool.query = pool.getConnection() -> connection.query()
-        // -> connection.release()
-        console.log('execute sql : ' + sql);
-        console.log('binding values : ' + values);
+        var connection = self.connect();
+        if (this.options.connection.debug) {
+            console.log('execute sql : ' + sql);
+            console.log('binding values : ' + values);
+        }
         function queryCallback(resolve, reject) {
-            self.query(sql, values, function (err, result, fields) {
+            connection.query(sql, values, function (err, result) {
                 if (err) {
                     reject(err);
                 } else {
                     resolve(result);   
                 }
             });
-            self.end();
+            if (!self.options.poolOn) {
+                connection.end();
+            }
         }
         if (self.options.returnSojsPromise) {
-            return sojs.create('sojs.promise', queryCallback);
+            return sojs.create('sojs.promise', queryCallback.proxy(self));
         }
-        return new Promise(function (resolve, reject) {
-            self.query(sql, values, queryCallback);
-            self.end();
-        });
-        
+        return new Promise(queryCallback);
     }
 });

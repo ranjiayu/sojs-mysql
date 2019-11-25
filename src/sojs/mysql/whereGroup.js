@@ -10,13 +10,13 @@ sojs.define({
         relation = relation || 'and';
         if (typeof(field) === 'string') {
             var fieldAndOpr = field.split('__');
-            // 列名
+            // field
             var field = fieldAndOpr[0];
-            // 操作符
+            // operator
             if (fieldAndOpr.length === 2) {
                 var opr = fieldAndOpr[1];
             } else {
-                // 默认为等于
+                // default operator is equal
                 var opr = '=';
             }
             this.conditions.push({
@@ -26,7 +26,7 @@ sojs.define({
                 relation: relation
             });
         } else if (typeof(field) === 'object') {
-            // 如果是whereGroup对象
+            // if field is 
             if (field.__sojs && field.__name === 'whereGroup') {
                 this.conditions.push({
                     group: field,

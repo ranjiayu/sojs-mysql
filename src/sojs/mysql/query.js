@@ -65,7 +65,7 @@ sojs.define({
         return this;
     },
     having: function (field, opr, value) {
-        // 如果有group, 生成的顺序要在group by 之后
+        // if this.others include 'group by', 'having' should after 'group by'.
         var index = -1;
         for (var i = 0; i < this.others.length; i ++) {
             if (/GROUP BY/.test(this.others[i])) {
@@ -134,7 +134,7 @@ sojs.define({
     },
     buildDeleteSql: function () {
         var conditions = this.conditions.buildSql();
-        var sql = 'DELETE * FROM {table} WHERE {conditions}';
+        var sql = 'DELETE FROM {table} WHERE {conditions}';
         sql = sql.replace('{table}', this.tableName);
         sql = sql.replace('{conditions}', conditions);
         return sql;
