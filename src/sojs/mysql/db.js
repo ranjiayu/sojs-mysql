@@ -1,4 +1,6 @@
 sojs.define({
+    name: 'db',
+    namespace: 'sojs.mysql',
     deps: {
         mysql: require('mysql')
     },

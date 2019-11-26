@@ -1,3 +1,5 @@
 require('sojs');
 sojs.setPath({'sojs.mysql': __dirname});
-module.exports = sojs.using('sojs.mysql');
+module.export = function(options) {
+	return sojs.create('sojs.mysql.db', options);
+};

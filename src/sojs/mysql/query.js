@@ -1,4 +1,6 @@
 sojs.define({
+    name: 'query',
+    namespace: 'sojs.mysql',
     deps: {
         sqlstring: require('sqlstring')
     },
@@ -51,8 +53,19 @@ sojs.define({
         return this;
     },
 
-    limit: function (num) {
-        this.others.push('LIMIT ' + num);
+    limit: function (n, m) {
+        n = parseInt(n, 10);
+        if (isNaN(n)) {
+            throw new Exception('limit params must be integer.');
+        }
+        if (m && n) {
+            m = parseInt(m, 10);
+            if (isNan(m)) {
+                throw new Exception('limit params must be integer.');
+            }
+            this.others.push('LIMIT ' + n + ',' + m);
+        }
+        this.others.push('LIMIT ' + n);
         return this;
     },
     orderBy: function (field, sort) {

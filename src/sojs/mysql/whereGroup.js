@@ -1,5 +1,6 @@
 sojs.define({
     name: 'whereGroup',
+    namespace: 'sojs.mysql',
     deps: {
         sqlstring: require('sqlstring')
     },

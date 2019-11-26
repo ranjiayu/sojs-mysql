@@ -1,11 +1,9 @@
 {
   "name": "sojs-mysql",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "./src/module.js",
-  "scripts": {
-    "test": "node test.js"
-  },
+  "scripts": {},
   "author": "ranjiayu",
   "license": "ISC",
   "dependencies": {
