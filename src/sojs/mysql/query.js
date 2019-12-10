@@ -58,9 +58,9 @@ sojs.define({
         if (isNaN(n)) {
             throw new Exception('limit params must be integer.');
         }
-        if (m && n) {
+        if (m != undefined && n != undefined) {
             m = parseInt(m, 10);
-            if (isNan(m)) {
+            if (isNaN(m)) {
                 throw new Exception('limit params must be integer.');
             }
             this.others.push('LIMIT ' + n + ',' + m);

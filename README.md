@@ -48,6 +48,25 @@ DB.table('user').select('name').where('create_time', new Date()).get()
 
 ## API
 
+Methods:
+
+### Classes
+
+DB (sojs.mysql.db)
+
+Query (sojs.mysql.query)
+
+### Methods
+
+* DB::setOptions(options) reset configuration.
+* DB::table(tableName) return a query instance.
+* Query.select(array|string)
+* Query.where(string, string)
+
+
+
+
+
 ## TODO
 
 * Transaction
