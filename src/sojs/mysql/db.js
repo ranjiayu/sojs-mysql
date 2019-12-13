@@ -4,6 +4,8 @@ sojs.define({
     deps: {
         mysql: require('mysql')
     },
+    // record transaction thread id
+    transactionThread: {},
     options: {},
     setOption: function (options) {
         // See: https://github.com/mysqljs/mysql#pooling-connections
@@ -67,8 +69,31 @@ sojs.define({
     query: function () {
         return sojs.create('sojs.mysql.query', this);
     },
-    execute: function (sql, values) {
+    transactions: function (p) {
+        var connection = self.connect();
+        var commitPromise = function (result) {
+            return sojs.create('sojs.promise', function (resolve, reject) {
+                connection.query('COMMIT', function (err) {
+                    if (err) {
+                        reject(false);
+                    }
+                    resolve(result);
+                });
+            });
+        };
+        return sojs.create('sojs.promise', function (resolve, reject) {
+            connection.query('START TRANSACTION', function () {
+                p.then(commitPromise).then(function (result) {
+                    resolve(result);
+                }).catch(function (err) {
+                    reject(err);
+                });
+            }); 
+        });
+    },
+    execute: function (sql, values, close) {
         var self = this;
+        close = close || true;
         var connection = self.connect();
         if (this.options.connection.debug) {
             console.log('execute sql : ' + sql);
@@ -82,7 +107,7 @@ sojs.define({
                     resolve(result);   
                 }
             });
-            if (!self.options.poolOn) {
+            if (!self.options.poolOn && close) {
                 connection.end();
             }
         }

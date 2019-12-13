@@ -13,21 +13,21 @@ var options = {
 
 var DB = sojs.create('sojs.mysql.db', options);
 
-DB.table('user').select(['name', 'id']).where('name', 'rjy').get()
-.then(function (res) {
-    console.log(res);
-})
-.catch(function (err) {
-    console.log(err);
-});
+// DB.table('user').select(['name', 'id']).where('name', 'rjy').get()
+// .then(function (res) {
+//     console.log(res);
+// })
+// .catch(function (err) {
+//     console.log(err);
+// });
 
-DB.table('user').select('name').where('create_time', new Date()).get()
-.then(function (res) {
-    console.log(res);
-})
-.catch(function (err) {
-    console.log(err);
-});
+// DB.table('user').select('name').where('create_time', new Date()).get()
+// .then(function (res) {
+//     console.log(res);
+// })
+// .catch(function (err) {
+//     console.log(err);
+// });
 
 
 // DB.table('user').select('name').where('id__in', [1, 2, 3, 4]).get();
@@ -41,3 +41,32 @@ DB.table('user').select('name').where('create_time', new Date()).get()
 
 // DB.table('user').join('user_info', 'user.id', 'user_info.uid').get();
 // DB.table('user').join('user_info', 'user.id', 'user_info.uid', 'LEFT').get();
+
+
+// DB.table('user').insert({name: 'ranjiayu1'})
+// .then(function (res) {
+//     console.log(res);
+// })
+// .catch(function (err) {
+//     console.log(err);
+// });
+
+// DB.table('user').where('name', 'rjy').update({name: 'rjy1'})
+// .then(function (res) {
+//     console.log(res);
+// })
+// .catch(function (err) {
+//     console.log(err);
+// });
+
+
+
+// todo
+
+DB.transactions(promiseFn)
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+});

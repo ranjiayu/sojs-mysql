@@ -142,7 +142,7 @@ sojs.define({
         var sql = 'UPDATE {table} SET {update} WHERE {conditions}';
         sql = sql.replace('{table}', this.tableName);
         sql = sql.replace('{update}', update);
-        sql = sql.replace('{condition}', conditions);
+        sql = sql.replace('{conditions}', conditions);
         return sql;
     },
     buildDeleteSql: function () {
@@ -160,10 +160,10 @@ sojs.define({
             values.push(this.sqlstring.escape(obj[key]));
         }
         fields = fields.join(',');
-        fields = '(' + field + ')';
+        fields = '(' + fields + ')';
         values = values.join(',');
         var sql = 'INSERT INTO ' + this.tableName + ' '
-        + field + ' VALUES (' + values + ')';
+        + fields + ' VALUES (' + values + ')';
         return sql;
     },
     get: function () {
