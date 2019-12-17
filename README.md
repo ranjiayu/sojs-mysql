@@ -13,11 +13,7 @@ npm install sojs-mysql
 require('sojs');
 
 var options = {
-    // return sojs.promise instance, set false to return Promise instance.
-    returnSojsPromise: true,
-    // connection pool
     poolOn: false,
-    // connection options, see more: node-mysql
     connection: {
         host: 'localhost',
         port: 3306,
@@ -26,10 +22,18 @@ var options = {
         database: 'test'
     }
 };
-
 var DB = sojs.create('sojs.mysql.db', options);
 
-DB.table('user').select(['name', 'id']).where('name', 'rjy').get()
+// SELECT
+
+DB.table('user')
+.select(['name', 'id'])
+.where('name__like', '%rjy%')
+.where('age__gt', 10)
+.where('school', 'xd')
+.limit(5)
+.orderBy('age', 'desc')
+.get().execute()
 .then(function (res) {
     console.log(res);
 })
@@ -37,36 +41,36 @@ DB.table('user').select(['name', 'id']).where('name', 'rjy').get()
     console.log(err);
 });
 
-DB.table('user').select('name').where('create_time', new Date()).get()
+// INSERT
+
+DB.table('user').insert({name: 'ranjiayu1'}).execute()
 .then(function (res) {
     console.log(res);
 })
 .catch(function (err) {
+    console.log(err);
+});
+
+// UPDATE
+
+DB.table('user').where('name', 'rjy').update({name: 'rjy1'}).execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+});
+
+// TRANSACTION
+var batchInsert = [];
+batchInsert.push(DB.table('user').insert({name: 't5'}));
+batchInsert.push(DB.table('user').insert({name: 't6'}));
+batchInsert.push(DB.table('user').insert({id: 1, name: 't7'}));
+
+DB.transactions(batchInsert)
+.then(function (res) {
+    console.log(res);
+}).catch(function (err) {
     console.log(err);
 });
 ```
-
-## API
-
-Methods:
-
-### Classes
-
-DB (sojs.mysql.db)
-
-Query (sojs.mysql.query)
-
-### Methods
-
-* DB::setOptions(options) reset configuration.
-* DB::table(tableName) return a query instance.
-* Query.select(array|string)
-* Query.where(string, string)
-
-
-
-
-
-## TODO
-
-* Transaction

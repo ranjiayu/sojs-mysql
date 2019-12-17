@@ -9,6 +9,8 @@ sojs.define({
     conditions: null,
     joins: [],
     others: [],
+    statement: '',
+    // Public methods
     query: function (connection) {
         this.connection = connection;
         this.conditions = sojs.create('sojs.mysql.whereGroup');
@@ -92,6 +94,36 @@ sojs.define({
             this.others.splice(index + 1, 0, statement);
         }
     },
+    get: function () {
+        var sql = this.buildSql();
+        this.statement = sql;
+        return this;
+    },
+    insert: function (obj) {
+        if (!this.isObject(obj)) {
+            throw new Error('Update param one must be a object');
+        }
+        var sql = this.buildInsertSql(obj);
+        this.statement = sql;
+        return this;
+    },
+    update: function (obj) {
+        if (!this.isObject(obj)) {
+            throw new Error('Update param one must be a object');
+        }
+        var sql = this.buildUpdateSql(obj);
+        this.statement = sql;
+        return this;
+    },
+    delete: function () {
+        var sql = this.buildDeleteSql();
+        this.statement = sql;
+        return this;
+    },
+    execute: function () {
+        return this.connection.execute(this.statement);
+    },
+    // Private Methods
     buildJoin: function (item) {
         return item.prefix + ' JOIN ' + item.table + ' ON '
         + item.baseKey + ' = ' + item.joinKey;
@@ -166,27 +198,11 @@ sojs.define({
         + fields + ' VALUES (' + values + ')';
         return sql;
     },
-    get: function () {
-        var sql = this.buildSql();
-        return this.connection.execute(sql);
-    },
-    insert: function (obj) {
-        if (!this.isObject(obj)) {
-            throw new Error('Update param one must be a object');
-        }
-        var sql = this.buildInsertSql(obj);
-        return this.connection.execute(sql);
-    },
-    update: function (obj) {
-        if (!this.isObject(obj)) {
-            throw new Error('Update param one must be a object');
-        }
-        var sql = this.buildUpdateSql(obj);
-        return this.connection.execute(sql);
-    },
-    delete: function () {
-        var sql = this.buildDeleteSql();
-        return this.connection.execute(sql);
+    setConnection: function (c) {
+        // reload connection instance
+        this.connection._setConnection = c;
+        this.connection._inTransaction = true;
+        return this;
     },
     getType: function (o) {
         return Object.prototype.toString.call(o);

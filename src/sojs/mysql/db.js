@@ -4,8 +4,6 @@ sojs.define({
     deps: {
         mysql: require('mysql')
     },
-    // record transaction thread id
-    transactionThread: {},
     options: {},
     setOption: function (options) {
         // See: https://github.com/mysqljs/mysql#pooling-connections
@@ -29,9 +27,7 @@ sojs.define({
         var gOption = {
             poolOn: options.poolOn || false,
             pool: poolOptions,
-            connection: connectionOptions,
-            // if set to false, every query return (new Promise)
-            returnSojsPromise: true
+            connection: connectionOptions
         };
         this.options = gOption;
     },
@@ -39,6 +35,11 @@ sojs.define({
         this.setOption(options);
     },
     connect: function (dbName) {
+        if (this._inTransaction) {
+            if (this.connection) {
+                return this.connection;
+            }
+        }
         var connection;
         dbName = dbName || this.options.connection.database;
         this.options.connection['database'] = dbName;
@@ -59,7 +60,10 @@ sojs.define({
             return pool;
         } else {
             // every query need a new Connection instance.
+            // Transaction use the same Connection instance.
             connection = this.mysql.createConnection(this.options.connection);
+            connection.connect();
+            this.connection = connection;
             return connection;
         }
     },
@@ -70,10 +74,12 @@ sojs.define({
         return sojs.create('sojs.mysql.query', this);
     },
     transactions: function (p) {
-        var connection = self.connect();
+        var self = this;
+        var statementList = [];
+        var connection = this.connect();
         var commitPromise = function (result) {
             return sojs.create('sojs.promise', function (resolve, reject) {
-                connection.query('COMMIT', function (err) {
+                connection.commit(function (err) {
                     if (err) {
                         reject(false);
                     }
@@ -81,25 +87,62 @@ sojs.define({
                 });
             });
         };
+        if (this.isArray(p)) {
+            // query list
+            for (var i = 0; i < p.length; i ++) {
+                if (this.isQuery(p[i])) {
+                    p[i] = p[i].setConnection(self);
+                    statementList.push(p[i]);
+                } else {
+                    throw new Error('transaction params must be a query or query array instance.');
+                }
+            }
+        } else if (this.isQuery(p)) {
+            // query instance
+            p = p.setConnection(self);
+            statementList.push(p);
+        } else {
+            throw new Error('transaction params must be a query, query array or Promise.');
+        }
         return sojs.create('sojs.promise', function (resolve, reject) {
-            connection.query('START TRANSACTION', function () {
-                p.then(commitPromise).then(function (result) {
+            connection.beginTransaction(function () {
+                for (var i = 0; i < statementList.length; i ++) {
+                    statementList[i] = statementList[i].execute();
+                }
+                sojs.promise.all(statementList)
+                .then(commitPromise)
+                .then(function (result) {
                     resolve(result);
+                    connection.end();
                 }).catch(function (err) {
                     reject(err);
+                    connection.rollback(function (err) {
+                        connection.end();
+                    });
                 });
-            }); 
+            });
+        });
+
+    },
+    beginTransaction: function (connection) {
+        return sojs.create('sojs.promise', function (resolve, reject) {
+            connection.beginTransaction(function (err) {
+                if (err) {
+                    reject('begin transaction error.');
+                } else {
+                    resolve(true);
+                }
+            });
         });
     },
-    execute: function (sql, values, close) {
+    execute: function (sql, values) {
         var self = this;
-        close = close || true;
         var connection = self.connect();
         if (this.options.connection.debug) {
             console.log('execute sql : ' + sql);
             console.log('binding values : ' + values);
         }
-        function queryCallback(resolve, reject) {
+        return sojs.create('sojs.promise', function (resolve, reject) {
             connection.query(sql, values, function (err, result) {
                 if (err) {
                     reject(err);
@@ -107,13 +150,22 @@ sojs.define({
                     resolve(result);   
                 }
             });
-            if (!self.options.poolOn && close) {
+            if (!self.options.poolOn && !self._inTransaction) {
                 connection.end();
             }
-        }
-        if (self.options.returnSojsPromise) {
-            return sojs.create('sojs.promise', queryCallback.proxy(self));
-        }
-        return new Promise(queryCallback);
+        });
+
+    },
+    getType: function (o) {
+        return Object.prototype.toString.call(o);
+    },
+    isArray: function (o) {
+        return this.getType(o) === '[object Array]';
+    },
+    isQuery: function (o) {
+        return o.__proto__ && o.__proto__.__full === 'sojs.mysql.query';
+    },
+    isPromise: function () {
+        return o.__proto__ && o.__proto__.__full === 'sojs.promise';
     }
 });

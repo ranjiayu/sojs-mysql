@@ -10,63 +10,55 @@ var options = {
         database: 'test'
     }
 };
-
 var DB = sojs.create('sojs.mysql.db', options);
 
-// DB.table('user').select(['name', 'id']).where('name', 'rjy').get()
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// });
+// SELECT
 
-// DB.table('user').select('name').where('create_time', new Date()).get()
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// });
-
-
-// DB.table('user').select('name').where('id__in', [1, 2, 3, 4]).get();
-// DB.table('user').select().where('create_time__range', [new Date(), new Date()]).get();
-// DB.table('user').select('*').where('name__like', '%rjy').get();
-// DB.table('user').where('age__lte', 23).get();
-
-// DB.table('user').select('name').limit(5).get();
-// DB.table('user').where('age__gt', 20).orderBy('age', 'desc').get();
-// DB.table('user').select('name').groupBy('age').get();
-
-// DB.table('user').join('user_info', 'user.id', 'user_info.uid').get();
-// DB.table('user').join('user_info', 'user.id', 'user_info.uid', 'LEFT').get();
-
-
-// DB.table('user').insert({name: 'ranjiayu1'})
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// });
-
-// DB.table('user').where('name', 'rjy').update({name: 'rjy1'})
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// });
-
-
-
-// todo
-
-DB.transactions(promiseFn)
+DB.table('user')
+.select(['name', 'id'])
+.where('name__like', '%rjy%')
+.where('age__gt', 10)
+.where('school', 'xd')
+.limit(5)
+.orderBy('age', 'desc')
+.get().execute()
 .then(function (res) {
     console.log(res);
 })
 .catch(function (err) {
+    console.log(err);
+});
+
+// INSERT
+
+DB.table('user').insert({name: 'ranjiayu1'}).execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+});
+
+// UPDATE
+
+DB.table('user').where('name', 'rjy').update({name: 'rjy1'}).execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+});
+
+// TRANSACTION
+
+var batchInsert = [];
+batchInsert.push(DB.table('user').insert({name: 't5'}));
+batchInsert.push(DB.table('user').insert({name: 't6'}));
+batchInsert.push(DB.table('user').insert({id: 1, name: 't7'}));
+
+DB.transactions(batchInsert)
+.then(function (res) {
+    console.log(res);
+}).catch(function (err) {
     console.log(err);
 });

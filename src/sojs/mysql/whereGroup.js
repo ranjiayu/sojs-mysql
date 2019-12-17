@@ -28,7 +28,7 @@ sojs.define({
             });
         } else if (typeof(field) === 'object') {
             // if field is 
-            if (field.__sojs && field.__name === 'whereGroup') {
+            if (field.__proto__ && field.__proto__.__full === 'sojs.mysql.whereGroup') {
                 this.conditions.push({
                     group: field,
                     relation: relation
