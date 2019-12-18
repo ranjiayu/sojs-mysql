@@ -73,7 +73,8 @@ sojs.define({
     query: function () {
         return sojs.create('sojs.mysql.query', this);
     },
-    transactions: function (p) {
+    transactions: function (p, sequential) {
+        sequential = sequential || false;
         var self = this;
         var statementList = [];
         var connection = this.connect();
@@ -106,31 +107,50 @@ sojs.define({
         }
         return sojs.create('sojs.promise', function (resolve, reject) {
             connection.beginTransaction(function () {
-                for (var i = 0; i < statementList.length; i ++) {
-                    statementList[i] = statementList[i].execute();
-                }
-                sojs.promise.all(statementList)
-                .then(commitPromise)
-                .then(function (result) {
-                    resolve(result);
-                    connection.end();
-                }).catch(function (err) {
-                    reject(err);
-                    connection.rollback(function (err) {
-                        connection.end();
-                    });
-                });
-            });
-        });
-
-    },
-    beginTransaction: function (connection) {
-        return sojs.create('sojs.promise', function (resolve, reject) {
-            connection.beginTransaction(function (err) {
-                if (err) {
-                    reject('begin transaction error.');
+                if (sequential) {
+                    // var _p = function () {
+                    //     return sojs.create('sojs.promise', function (r, v) {
+                    //         r(true);
+                    //     });
+                    // };
+                    // statementList.unshift(_p);
+                    statementList.push(commitPromise);
+                    // execute these promise sequential!
+                    var compelte = 0;
+                    var count = statementList.length;
+                    var iterate = function () {
+                        if (statementList[compelte].execute) {
+                            statementList[compelte].execute().then(self.once(function () {
+                                compelte ++;
+                                if (compelte < count) {
+                                    iterate();
+                                }
+                            }))
+                        } else {
+                            statementList[compelte]().then(self.once(function () {
+                                compelte ++;
+                                if (compelte < count) {
+                                    iterate();
+                                }
+                            }));
+                        }
+                    };
+                    iterate();
                 } else {
-                    resolve(true);
+                    for (var i = 0; i < statementList.length; i ++) {
+                        statementList[i] = statementList[i].execute();
+                    }
+                    sojs.promise.all(statementList)
+                    .then(commitPromise)
+                    .then(function (result) {
+                        resolve(result);
+                        connection.end();
+                    }).catch(function (err) {
+                        reject(err);
+                        connection.rollback(function (err) {
+                            connection.end();
+                        });
+                    });
                 }
             });
         });
@@ -167,5 +187,15 @@ sojs.define({
     },
     isPromise: function () {
         return o.__proto__ && o.__proto__.__full === 'sojs.promise';
+    },
+    once: function (fn) {
+        var self = this;
+        var called = false;
+        return function () {
+            if (!called) {
+                called = true;
+                fn.apply(self, arguments);
+            }
+        };
     }
 });

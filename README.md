@@ -74,3 +74,30 @@ DB.transactions(batchInsert)
     console.log(err);
 });
 ```
+
+## Document
+
+DB.table(tableName) return a Query instance
+
+Query instance's majority of methods return itself, except *execute()* method.
+
+Query Instance has execute() method, which return a promise.
+
+eg. 
+```javascript
+DB.table('user').select().get() // Query instance
+DB.table('user').where('name', 'ranjiayu').where('age', 16).delete() // Query instance
+DB.table('user').select().get().execute() // Promise
+DB.table('user').insert({name: 'rjy'}).execute() // Promise
+```
+
+Transaction usage:
+
+```javascript
+var queryInstances = [
+    DB.table('user').insert({name: 'rjy'}),
+    DB.table('user').insert({name: 'rjy1'})
+];
+DB.transaction(queryInstances, false); // params two means execute NOT senquential. Set true to execute sql in order. Default is false.
+```
+
