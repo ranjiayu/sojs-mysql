@@ -70,6 +70,7 @@ batchInsert.push(DB.table('user').insert({id: 1, name: 't7'}));
 DB.transactions(batchInsert)
 .then(function (res) {
     console.log(res);
+    // res is an array, include all statements' results.
 }).catch(function (err) {
     console.log(err);
 });

@@ -106,33 +106,45 @@ sojs.define({
             throw new Error('transaction params must be a query, query array or Promise.');
         }
         return sojs.create('sojs.promise', function (resolve, reject) {
+            var result = [];
             connection.beginTransaction(function () {
                 if (sequential) {
-                    // var _p = function () {
-                    //     return sojs.create('sojs.promise', function (r, v) {
-                    //         r(true);
-                    //     });
-                    // };
-                    // statementList.unshift(_p);
                     statementList.push(commitPromise);
                     // execute these promise sequential!
                     var compelte = 0;
                     var count = statementList.length;
-                    var iterate = function () {
+                    function iterate () {
+                        // callback only run onece in this scope
+                        var addCompelete = function (r) {
+                            result.push(r);
+                            compelte ++;
+                            if (compelte < count) {
+                                iterate();
+                            } else {
+                                resolve(result.slice(0, -1));
+                                connection.end();
+                            }
+                            return;
+                        };
+                        addCompelete = self.once(addCompelete);
                         if (statementList[compelte].execute) {
-                            statementList[compelte].execute().then(self.once(function () {
-                                compelte ++;
-                                if (compelte < count) {
-                                    iterate();
-                                }
-                            }))
+                            statementList[compelte].execute().
+                            then(addCompelete)
+                            .catch(function (err) {
+                                reject(err);
+                                connection.rollback(function (err) {
+                                    connection.end();
+                                });
+                            });
                         } else {
-                            statementList[compelte]().then(self.once(function () {
-                                compelte ++;
-                                if (compelte < count) {
-                                    iterate();
-                                }
-                            }));
+                            statementList[compelte]()
+                            .then(addCompelete)
+                            .catch(function (err) {
+                                reject(err);
+                                connection.rollback(function (err) {
+                                    connection.end();
+                                });
+                            });
                         }
                     };
                     iterate();

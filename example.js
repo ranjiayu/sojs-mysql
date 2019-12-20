@@ -8,7 +8,7 @@ var options = {
         user: 'root',
         password: '123456',
         database: 'test',
-        debug: true
+        debug: false
     }
 };
 var DB = sojs.create('sojs.mysql.db', options);
@@ -66,9 +66,10 @@ batchInsert.push(DB.table('user').insert({name: 't5'}));
 batchInsert.push(DB.table('user').where('name', 't5').delete());
 batchInsert.push(DB.table('user').insert({name: 't6'}));
 
-DB.transactions(batchInsert, true)
+DB.transactions(batchInsert, false)
 .then(function (res) {
     console.log(res);
+    // res is an array, include all statements' results.
 }).catch(function (err) {
     console.log(err);
 });
