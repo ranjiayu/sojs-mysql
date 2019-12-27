@@ -66,6 +66,7 @@ sojs.define({
                 throw new Exception('limit params must be integer.');
             }
             this.others.push('LIMIT ' + n + ',' + m);
+            return this;
         }
         this.others.push('LIMIT ' + n);
         return this;
