@@ -74,6 +74,17 @@ DB.transactions(batchInsert)
 }).catch(function (err) {
     console.log(err);
 });
+
+// Async Await
+
+async function getResult () {
+    let result = await DB.table('user')
+    .select(['age', 'count(*)'])
+    .groupBy('age')
+    .get().execute();
+    console.log(result);
+}
+
 ```
 
 ## Document

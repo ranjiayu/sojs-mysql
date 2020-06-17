@@ -23,17 +23,19 @@ sojs.define({
         if (this.getType(columns) === '[object Array]') {
             var c = [];
             for (var i = 0; i < columns.length; i ++) {
-                c.push('`' + columns[i] + '`');
+                if (/\w+\(\S+\)/.test(columns[i])) {
+                    c.push(columns[i]);
+                } else {
+                    c.push('`' + columns[i] + '`');
+                }
             }
             this.fields = c;
         } else if (this.getType(columns) === '[object String]') {
-            columns = '`' + columns + '`';
             this.fields = [columns];
         }
         return this;
     },
     where: function (field, value) {
-        value = value || null;
         this.conditions.where(field, value);
         return this;
     },
@@ -169,7 +171,7 @@ sojs.define({
         }
         var update = [];
         for (var i = 0; i < fields.length; i ++) {
-            update.push(fields[i] + ' = ' + this.sqlstring.escape(values[i]));
+            update.push('`' + fields[i] + '` = ' + this.sqlstring.escape(values[i]));
         }
         update = update.join(',');
         var sql = 'UPDATE {table} SET {update} WHERE {conditions}';

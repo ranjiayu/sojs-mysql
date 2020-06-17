@@ -15,49 +15,51 @@ var DB = sojs.create('sojs.mysql.db', options);
 
 // SELECT
 
-// DB.table('user')
+DB.table('user')
 // .select(['name', 'id'])
-// .where('name__like', '%rjy%')
-// .where('age__gt', 10)
-// .where('school', 'xd')
-// .limit(5)
-// .orderBy('age', 'desc')
-// .get().execute()
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// });
+// .select('count(name)')
+.select(['name', 'count(*)'])
+.where('name__like', '%rjy%')
+.where('age__gt', 10)
+.where('school', 'xd')
+.limit(5)
+.orderBy('age', 'desc')
+.get().execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+});
 
 // INSERT
 
-// DB.table('user').insert({name: 'ranjiayu2'}).execute()
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// });
+DB.table('user').insert({name: 'ranjiayu2'}).execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+});
 
 // UPDATE
 
-// DB.table('user').where('name', 'ranjiayu2').update({name: 'ranjiayu3'}).execute()
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// });
+DB.table('user').where('name', 'ranjiayu2').update({name: 'ranjiayu3'}).execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+});
 
 // DELETE
-// DB.table('user').where('name__in', ['t5', 't6', 't7']).delete().execute()
-// .then(function (res) {
-//     console.log(res);
-// })
-// .catch(function (err) {
-//     console.log(err);
-// })
+DB.table('user').where('name__in', ['t5', 't6', 't7']).delete().execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+})
 
 // TRANSACTION
 
