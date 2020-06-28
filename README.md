@@ -13,7 +13,6 @@ npm install sojs-mysql
 require('sojs');
 
 var options = {
-    poolOn: false,
     connection: {
         host: 'localhost',
         port: 3306,

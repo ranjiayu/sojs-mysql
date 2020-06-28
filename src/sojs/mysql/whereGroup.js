@@ -41,7 +41,12 @@ sojs.define({
         this.where(field, value);
     },
     dumpCondition: function (field, opr, value) {
-        field = '`' + field + '`';
+        if (field.indexOf('.') > -1) {
+            var tmp = field.split('.');
+            field = '`' + tmp[0] + '`.`' + tmp[1] + '`';
+        } else {
+            field = '`' + field + '`';
+        }
         var valueStr;
         var valueEscaped = this.sqlstring.escape(value);
         var oprLower = opr.toLowerCase();

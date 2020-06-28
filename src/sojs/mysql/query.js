@@ -24,7 +24,12 @@ sojs.define({
             var c = [];
             for (var i = 0; i < columns.length; i ++) {
                 if (/\w+\(\S+\)/.test(columns[i])) {
+                    // 函数名不作处理
                     c.push(columns[i]);
+                } else if (columns[i].indexOf('.') > -1) {
+                    // 处理带有表名的列
+                    var tmp = columns[i].split('.');
+                    c.push('`' + tmp[0] + '`.`' + tmp[1] + '`');
                 } else {
                     c.push('`' + columns[i] + '`');
                 }

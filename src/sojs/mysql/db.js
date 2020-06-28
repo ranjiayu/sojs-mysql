@@ -8,12 +8,11 @@ sojs.define({
     setOption: function (options) {
         // See: https://github.com/mysqljs/mysql#pooling-connections
         var defaultPoolOptions = {
-            acquireTimeout: 10000,
+            acquireTimeout: 3600,
             waitForConnections: true,
-            connectionLimit: 10,
+            connectionLimit: 100,
             queueLimit: 0
         };
-        // See: https://github.com/mysqljs/mysql#connection-options
         var defaultConnectionOptions = {
             charset: 'UTF8_GENERAL_CI',
             timezone: 'local',
@@ -25,7 +24,6 @@ sojs.define({
         var connectionOptions = Object.assign(
             {}, defaultConnectionOptions, options.connection);
         var gOption = {
-            poolOn: options.poolOn || false,
             pool: poolOptions,
             connection: connectionOptions
         };
@@ -33,39 +31,14 @@ sojs.define({
     },
     db: function (options) {
         this.setOption(options);
-    },
-    connect: function (dbName) {
-        if (this._inTransaction) {
-            if (this.connection) {
-                return this.connection;
-            }
-        }
-        var connection;
-        dbName = dbName || this.options.connection.database;
-        this.options.connection['database'] = dbName;
-        if (this.options.poolOn === true) {
-            // if use connection pool, return the Pool instance.
-            if (this.connection != undefined) {
-                return this.connection;
-            }
-            var pool = this.mysql.createPool(
-                Object.assign({}, this.options.pool, this.options.connection));
-            pool.on('release', function (c) {
-                console.log('Connection %d released', c.threadId);
-            });
-            pool.on('enqueue', function () {
-                console.log('Waiting for available connection slot')
-            });
-            this.connection = pool;
-            return pool;
-        } else {
-            // every query need a new Connection instance.
-            // Transaction use the same Connection instance.
-            connection = this.mysql.createConnection(this.options.connection);
-            connection.connect();
-            this.connection = connection;
-            return connection;
-        }
+        this.connection = this.mysql.createPool(
+            Object.assign({}, this.options.pool, this.options.connection));
+        // this.connection.on('release', function (c) {
+        //     console.log('Connection %d released', c.threadId);
+        // });
+        // this.connection.on('enqueue', function () {
+        //     console.log('Waiting for available connection slot')
+        // });
     },
     table: function (tableName) {
         return this.query().from(tableName);
@@ -77,116 +50,112 @@ sojs.define({
         sequential = sequential || false;
         var self = this;
         var statementList = [];
-        var connection = this.connect();
-        var commitPromise = function (result) {
-            return sojs.create('sojs.promise', function (resolve, reject) {
-                connection.commit(function (err) {
-                    if (err) {
-                        reject(false);
-                    }
-                    resolve(result);
-                });
-            });
-        };
-        if (this.isArray(p)) {
-            // query list
-            for (var i = 0; i < p.length; i ++) {
-                if (this.isQuery(p[i])) {
-                    p[i] = p[i].setConnection(self);
-                    statementList.push(p[i]);
-                } else {
-                    throw new Error('transaction params must be a query or query array instance.');
-                }
-            }
-        } else if (this.isQuery(p)) {
-            // query instance
-            p = p.setConnection(self);
-            statementList.push(p);
-        } else {
-            throw new Error('transaction params must be a query, query array or Promise.');
-        }
+        var pool = this.connection;
         return sojs.create('sojs.promise', function (resolve, reject) {
-            var result = [];
-            connection.beginTransaction(function () {
-                if (sequential) {
-                    statementList.push(commitPromise);
-                    // execute these promise sequential!
-                    var compelte = 0;
-                    var count = statementList.length;
-                    function iterate () {
-                        // callback only run onece in this scope
-                        var addCompelete = function (r) {
-                            result.push(r);
-                            compelte ++;
-                            if (compelte < count) {
-                                iterate();
-                            } else {
-                                resolve(result.slice(0, -1));
-                                connection.end();
-                            }
-                            return;
-                        };
-                        addCompelete = self.once(addCompelete);
-                        if (statementList[compelte].execute) {
-                            statementList[compelte].execute().
-                            then(addCompelete)
-                            .catch(function (err) {
-                                reject(err);
-                                connection.rollback(function (err) {
-                                    connection.end();
-                                });
-                            });
+            pool.getConnection(function (err, conn) {
+                if (err) throw new Error('get connection from pool failed.');
+                // 在事务中, 保证每个query实例的connection对象是一个
+                if (self.isArray(p)) {
+                    for (var i = 0; i < p.length; i ++) {
+                        if (self.isQuery(p[i])) {
+                            p[i] = p[i].setConnection(conn);
+                            statementList.push(p[i]);
                         } else {
-                            statementList[compelte]()
-                            .then(addCompelete)
-                            .catch(function (err) {
-                                reject(err);
-                                connection.rollback(function (err) {
-                                    connection.end();
-                                });
-                            });
+                            throw new Error('transaction params must be a query or query array instance.');
                         }
-                    };
-                    iterate();
-                } else {
-                    for (var i = 0; i < statementList.length; i ++) {
-                        statementList[i] = statementList[i].execute();
                     }
-                    sojs.promise.all(statementList)
-                    .then(commitPromise)
-                    .then(function (result) {
-                        resolve(result);
-                        connection.end();
-                    }).catch(function (err) {
-                        reject(err);
-                        connection.rollback(function (err) {
-                            connection.end();
+                } else if (self.isQuery(p)) {
+                    p = p.setConnection(conn);
+                    statementList.push(p);
+                } else {
+                    throw new Error('transaction params must be a query, query array or Promise.');
+                }
+                var result = [];
+                var connection = conn;
+                // Commit动作
+                var commitPromise = function (result) {
+                    return sojs.create('sojs.promise', function (resolve, reject) {
+                        connection.commit(function (err) {
+                            if (err) {
+                                reject(false);
+                            }
+                            resolve(result);
                         });
                     });
-                }
+                };
+                // 事务开始
+                connection.beginTransaction(function () {
+                    if (sequential) {
+                        statementList.push(commitPromise);
+                        // execute these promise sequential!
+                        var compelte = 0;
+                        var count = statementList.length;
+                        function iterate () {
+                            // callback only run onece in this scope
+                            var addCompelete = function (r) {
+                                result.push(r);
+                                compelte ++;
+                                if (compelte < count) {
+                                    iterate();
+                                } else {
+                                    resolve(result.slice(0, -1));
+                                    // connection.end();
+                                }
+                                return;
+                            };
+                            addCompelete = self.once(addCompelete);
+                            if (statementList[compelte].execute) {
+                                statementList[compelte].execute().
+                                then(addCompelete)
+                                .catch(function (err) {
+                                    reject(err);
+                                    connection.rollback(function (err) {
+                                        // connection.end();
+                                    });
+                                });
+                            } else {
+                                statementList[compelte]()
+                                .then(addCompelete)
+                                .catch(function (err) {
+                                    reject(err);
+                                    connection.rollback(function (err) {
+                                        // connection.end();
+                                    });
+                                });
+                            }
+                        };
+                        iterate();
+                    } else {
+                        for (var i = 0; i < statementList.length; i ++) {
+                            statementList[i] = statementList[i].execute();
+                        }
+                        sojs.promise.all(statementList)
+                        .then(commitPromise)
+                        .then(function (result) {
+                            resolve(result);
+                            // connection.end();
+                        }).catch(function (err) {
+                            reject(err);
+                            connection.rollback(function (err) {
+                                // connection.end();
+                            });
+                        });
+                    }
+                });
             });
         });
     },
     execute: function (sql, values) {
         var self = this;
-        var connection = self.connect();
-        if (this.options.connection.debug) {
-            console.log('execute sql : ' + sql);
-            console.log('binding values : ' + values);
-        }
         return sojs.create('sojs.promise', function (resolve, reject) {
-            connection.query(sql, values, function (err, result) {
+            self.connection.query(sql, values, function (err, result) {
                 if (err) {
                     reject(err);
                 } else {
                     resolve(result);   
                 }
             });
-            if (!self.options.poolOn && !self._inTransaction) {
-                connection.end();
-            }
         });
-
     },
     getType: function (o) {
         return Object.prototype.toString.call(o);
