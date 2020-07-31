@@ -38,7 +38,7 @@ sojs.define({
     },
     orWhere: function (field, value) {
         value = value || '';
-        this.where(field, value);
+        this.where(field, value, 'OR');
     },
     dumpCondition: function (field, opr, value) {
         if (field.indexOf('.') > -1) {
