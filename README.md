@@ -1,13 +1,15 @@
 # sojs-mysql
 A simple mysql database utility base on [sojs](https://github.com/zhangziqiu/sojs)
 
-## Install
+基于[sojs](https://github.com/zhangziqiu/sojs)的mysql工具库, 更方便可读地生成SQL语句
+
+## Install 安装
 
 ```bash
 npm install sojs-mysql
 ```
 
-## Usage
+## Usage 基本使用
 
 ```javascript
 require('sojs');
@@ -23,15 +25,20 @@ var options = {
 };
 var DB = sojs.create('sojs.mysql.db', options);
 
-// SELECT
+// SELECT例子
+// select('string')用于更方便地使用sum(),count()等函数
+// 或者 select(['字段1', '字段2']), 默认为*
 
 DB.table('user')
-.select(['name', 'id'])
+// .select(['name', 'id'])
+// .select('count(name)')
+.select(['name', 'count(*)'])
 .where('name__like', '%rjy%')
 .where('age__gt', 10)
 .where('school', 'xd')
-.limit(5)
+.orWhere('sex', 'man')
 .orderBy('age', 'desc')
+.limit(5)
 .get().execute()
 .then(function (res) {
     console.log(res);
@@ -40,9 +47,34 @@ DB.table('user')
     console.log(err);
 });
 
+// WHERE, 借鉴Django ORM的语法, __like, __lte, __lt, __gt, __gte, __range, __in, __eq, __neq, __isnull
+
+queryInstance.where('column__like', 'abc') // column like 'abc'
+queryInstance.where('column0', 1).orWhere('column1', 2) // column = 1 or column1 = 2
+queryInstance.notWhere('column', 'xyz') // column != 'xyz'
+
+// ORDER BY
+
+queryInstance.orderBy('column', 'asc');
+queryInstance.orderBy(['column1', 'asc'], ['column2', 'desc']);
+
+// LIMIT
+
+queryInstance.limit(offset, num);
+queryInstance.limit(num);
+
+// JOIN
+
+queryInstance.join('table1', 'table0.id', 'table1.t_id', 'INNER') // inner join on table0.id = table1.t_id
+
+// GROUP BY && HAVING
+
+queryInstance.groupBy('column').having('column', '>', 5) // group by column having column > 5
+
+
 // INSERT
 
-DB.table('user').insert({name: 'ranjiayu1'}).execute()
+DB.table('user').insert({name: 'ranjiayu2'}).execute()
 .then(function (res) {
     console.log(res);
 })
@@ -52,7 +84,7 @@ DB.table('user').insert({name: 'ranjiayu1'}).execute()
 
 // UPDATE
 
-DB.table('user').where('name', 'rjy').update({name: 'rjy1'}).execute()
+DB.table('user').where('name', 'ranjiayu2').update({name: 'ranjiayu3'}).execute()
 .then(function (res) {
     console.log(res);
 })
@@ -60,13 +92,23 @@ DB.table('user').where('name', 'rjy').update({name: 'rjy1'}).execute()
     console.log(err);
 });
 
-// TRANSACTION
+// DELETE
+DB.table('user').where('name__in', ['t5', 't6', 't7']).delete().execute()
+.then(function (res) {
+    console.log(res);
+})
+.catch(function (err) {
+    console.log(err);
+})
+
+// TRANSACTION 事务
+
 var batchInsert = [];
 batchInsert.push(DB.table('user').insert({name: 't5'}));
+batchInsert.push(DB.table('user').where('name', 't5').delete());
 batchInsert.push(DB.table('user').insert({name: 't6'}));
-batchInsert.push(DB.table('user').insert({id: 1, name: 't7'}));
 
-DB.transactions(batchInsert)
+DB.transactions(batchInsert, false)
 .then(function (res) {
     console.log(res);
     // res is an array, include all statements' results.
@@ -74,7 +116,10 @@ DB.transactions(batchInsert)
     console.log(err);
 });
 
-// Async Await
+// EXECUTE 方法, 之前的.get(), .insert() 等方法, 都是构造出一个SQL, 返回的是this(query实例自身)
+// 而 execute() 方法是真正地执行该语句, 并返回Promise对象(sojs.promise)
+
+// 推荐使用 Async Await 语法
 
 async function getResult () {
     let result = await DB.table('user')
@@ -86,7 +131,7 @@ async function getResult () {
 
 ```
 
-## Document
+## Document 文档
 
 DB.table(tableName) return a Query instance
 

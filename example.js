@@ -11,6 +11,7 @@ var options = {
         debug: false
     }
 };
+// 创建DB实例
 var DB = sojs.create('sojs.mysql.db', options);
 
 // SELECT
@@ -62,7 +63,7 @@ DB.table('user').where('name__in', ['t5', 't6', 't7']).delete().execute()
     console.log(err);
 })
 
-// TRANSACTION
+// TRANSACTION 事务
 
 var batchInsert = [];
 batchInsert.push(DB.table('user').insert({name: 't5'}));

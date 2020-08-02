@@ -40,6 +40,14 @@ sojs.define({
         value = value || '';
         this.where(field, value, 'OR');
     },
+    notWhere: function (field, value) {
+        if (value === null || value === undefined) {
+            this.where(field + '__isnull', true);
+        } else {
+            this.where(field + '__neq', value);
+        }
+        return this;
+    },
     dumpCondition: function (field, opr, value) {
         if (field.indexOf('.') > -1) {
             var tmp = field.split('.');
@@ -76,6 +84,18 @@ sojs.define({
                 throw new Error('BETWEEN operator value must be an array with length 2.')
             }
             valueStr = this.sqlstring.escape(value[0]) + ' AND ' + this.sqlstring.escape(value[1]);
+        } else if (oprLower === 'eq') {
+            opr = '=';
+            valueStr = valueEscaped;
+        } else if (oprLower === 'neq') {
+            opr = '!=';
+            valueStr = valueEscaped;
+        } else if (oprLower === 'isnull') {
+            // make sure the value is boolean
+            if (!this.isBoolean(value)) {
+                throw new Error('isnull function expect a boolean param.');
+            }
+            valueStr = valueEscaped;
         } else {
             this.args.push(value);
             valueStr = valueEscaped;
@@ -100,5 +120,8 @@ sojs.define({
     },
     isArray: function (o) {
         return Object.prototype.toString.call(o) === '[object Array]';
+    },
+    isBoolean: function (o) {
+        return typeof(o) === 'boolean';
     }
 });
