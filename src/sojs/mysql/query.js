@@ -98,8 +98,6 @@ sojs.define({
             this.others.push('ORDER BY ' + fields.join(','));
         } else if (typeof(field) === 'string' && typeof(sort) === 'string') {
             sort = sort || 'DESC';
-            console.log(field);
-            console.log(this.escapeField(field));
             this.others.push('ORDER BY ' + this.escapeField(field) + ' ' + sort.toUpperCase());
         } else {
             throw new Error('orderBy params error.')
