@@ -24,8 +24,8 @@ DB.table('user')
 .where('age__gt', 10)
 .where('school', 'xd')
 .orWhere('sex', 'man')
-.limit(5)
 .orderBy('age', 'desc')
+.limit(5)
 .get().execute()
 .then(function (res) {
     console.log(res);

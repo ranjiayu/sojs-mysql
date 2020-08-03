@@ -42,7 +42,7 @@ sojs.define({
     },
     notWhere: function (field, value) {
         if (value === null || value === undefined) {
-            this.where(field + '__isnull', true);
+            this.where(field + '__isnull', false);
         } else {
             this.where(field + '__neq', value);
         }
@@ -95,7 +95,12 @@ sojs.define({
             if (!this.isBoolean(value)) {
                 throw new Error('isnull function expect a boolean param.');
             }
-            valueStr = valueEscaped;
+            valueStr = 'NULL';
+            if (value) {
+                opr = 'IS';
+            } else {
+                opr = 'IS NOT';
+            }
         } else {
             this.args.push(value);
             valueStr = valueEscaped;

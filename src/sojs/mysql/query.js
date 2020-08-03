@@ -26,12 +26,8 @@ sojs.define({
                 if (/\w+\(\S+\)/.test(columns[i])) {
                     // 函数名不作处理
                     c.push(columns[i]);
-                } else if (columns[i].indexOf('.') > -1) {
-                    // 处理带有表名的列
-                    var tmp = columns[i].split('.');
-                    c.push('`' + tmp[0] + '`.`' + tmp[1] + '`');
                 } else {
-                    c.push('`' + columns[i] + '`');
+                    c.push(this.escapeField(columns[i]));
                 }
             }
             this.fields = c;
@@ -47,6 +43,10 @@ sojs.define({
     orWhere: function (field, value) {
         value = value || '';
         this.conditions.orWhere(field, value);
+        return this;
+    },
+    notWhere: function (field, value) {
+        this.conditions.notWhere(field, value);
         return this;
     },
     join: function (table, baseKey, joinKey, prefix) {
@@ -78,12 +78,36 @@ sojs.define({
         return this;
     },
     orderBy: function (field, sort) {
-        sort = sort || 'DESC'
-        this.others.push('ORDER BY ' + field + ' ' + sort.toUpperCase());
+        if (this.isArray(field)) {
+            // make sure all the params are array type
+            for (var i = 0; i < arguments.length; i ++) {
+                if (!this.isArray(arguments[i])) {
+                    throw new Error('orderBy params error.');
+                }
+            }
+            var fields = [];
+            var sorts = [];
+            for (i = 0; i < arguments.length; i ++) {
+                // this.orderBy(arguments[i][0], arguments[i][1]);
+                fields.push(arguments[i][0]);
+                sorts.push(arguments[i][1]);
+            }
+            for (i = 0; i < fields.length; i ++) {
+                fields[i] = this.escapeField(fields[i]) + ' ' + sorts[i].toUpperCase();
+            }
+            this.others.push('ORDER BY ' + fields.join(','));
+        } else if (typeof(field) === 'string' && typeof(sort) === 'string') {
+            sort = sort || 'DESC';
+            console.log(field);
+            console.log(this.escapeField(field));
+            this.others.push('ORDER BY ' + this.escapeField(field) + ' ' + sort.toUpperCase());
+        } else {
+            throw new Error('orderBy params error.')
+        }
         return this;
     },
     groupBy: function (field) {
-        this.others.push('GROUP BY ' + field);
+        this.others.push('GROUP BY ' + this.escapeField(field));
         return this;
     },
     having: function (field, opr, value) {
@@ -96,7 +120,7 @@ sojs.define({
             }
         }
         if (index != -1) {
-            var statement = 'HAVING ' + field + ' '
+            var statement = 'HAVING ' + this.escapeField(field) + ' '
             + opr + ' ' + this.sqlstring.escape(value);
             this.others.splice(index + 1, 0, statement);
         }
@@ -175,7 +199,7 @@ sojs.define({
         }
         var update = [];
         for (var i = 0; i < fields.length; i ++) {
-            update.push('`' + fields[i] + '` = ' + this.sqlstring.escape(values[i]));
+            update.push(this.escapeField(fields[i]) + ' = ' + this.sqlstring.escape(values[i]));
         }
         update = update.join(',');
         var sql = 'UPDATE {table} SET {update} WHERE {conditions}';
@@ -195,7 +219,7 @@ sojs.define({
         var fields = [];
         var values = [];
         for (var key in obj) {
-            fields.push('`' + key + '`');
+            fields.push(this.escapeField(key));
             values.push(this.sqlstring.escape(obj[key]));
         }
         fields = fields.join(',');
@@ -216,5 +240,27 @@ sojs.define({
     },
     isObject: function (o) {
         return this.getType(o) === '[object Object]';
+    },
+    isArray: function (o) {
+        return this.getType(o) === '[object Array]';
+    },
+    escapeField: function (o) {
+        var tableName = null;
+        var columnName = null;
+        if (o.indexOf('.') > -1) {
+            var tmp = o.split('.');
+            if (tmp.length === 1) {
+                columnName = tmp[0];
+            } else if (tmp.length >= 2) {
+                tableName = tmp[0];
+                columnName = tmp[1];
+            }
+        } else {
+            columnName = o;
+        }
+        if (!tableName) {
+            return '`' + columnName + '`';
+        }
+        return '`' + tableName + '`.`' + columnName + '`';
     }
 });
