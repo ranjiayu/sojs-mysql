@@ -1,13 +1,21 @@
 # sojs-mysql
 A simple mysql database utility base on [sojs](https://github.com/zhangziqiu/sojs)
 
-基于[sojs](https://github.com/zhangziqiu/sojs)的mysql工具库, 更方便可读地生成SQL语句
+基于[sojs](https://github.com/zhangziqiu/sojs)的mysql工具库, 更方便可读地生成SQL语句, 减少手动拼接SQL的成本
 
 ## Install 安装
 
 ```bash
 npm install sojs-mysql
 ```
+
+## Document 文档
+
+DB.table(tableName) 返回的是一个Query实例, Query实例的大部分方法(不包括execute)都返回自身实例(this)
+
+execute方法返回一个Promise(sojs.promise)
+
+具体看以下例子
 
 ## Usage 基本使用
 
@@ -47,7 +55,7 @@ DB.table('user')
     console.log(err);
 });
 
-// WHERE, 借鉴Django ORM的语法, __like, __lte, __lt, __gt, __gte, __range, __in, __eq, __neq, __isnull
+// WHERE, 借鉴Django ORM的语法, 列名 + __like, __lte, __lt, __gt, __gte, __range, __in, __eq, __neq, __isnull 作为第一个参数, 第二个参数为值
 
 queryInstance.where('column__like', 'abc') // column like 'abc'
 queryInstance.where('column0', 1).orWhere('column1', 2) // column = 1 or column1 = 2
@@ -58,7 +66,7 @@ queryInstance.notWhere('column', 'xyz') // column != 'xyz'
 queryInstance.orderBy('column', 'asc');
 queryInstance.orderBy(['column1', 'asc'], ['column2', 'desc']);
 
-// LIMIT
+// LIMIT, 注意limit要在order by之后写
 
 queryInstance.limit(offset, num);
 queryInstance.limit(num);
@@ -70,7 +78,6 @@ queryInstance.join('table1', 'table0.id', 'table1.t_id', 'INNER') // inner join 
 // GROUP BY && HAVING
 
 queryInstance.groupBy('column').having('column', '>', 5) // group by column having column > 5
-
 
 // INSERT
 
@@ -103,15 +110,16 @@ DB.table('user').where('name__in', ['t5', 't6', 't7']).delete().execute()
 
 // TRANSACTION 事务
 
+// 先实例多个Query实例
 var batchInsert = [];
 batchInsert.push(DB.table('user').insert({name: 't5'}));
 batchInsert.push(DB.table('user').where('name', 't5').delete());
 batchInsert.push(DB.table('user').insert({name: 't6'}));
 
+// 执行, 第二个参数false表示不是顺序执行, true表示顺序执行
 DB.transactions(batchInsert, false)
 .then(function (res) {
     console.log(res);
-    // res is an array, include all statements' results.
 }).catch(function (err) {
     console.log(err);
 });
@@ -130,30 +138,3 @@ async function getResult () {
 }
 
 ```
-
-## Document 文档
-
-DB.table(tableName) return a Query instance
-
-Query instance's majority of methods return itself, except *execute()* method.
-
-Query Instance has execute() method, which return a promise.
-
-eg. 
-```javascript
-DB.table('user').select().get() // Query instance
-DB.table('user').where('name', 'ranjiayu').where('age', 16).delete() // Query instance
-DB.table('user').select().get().execute() // Promise
-DB.table('user').insert({name: 'rjy'}).execute() // Promise
-```
-
-Transaction usage:
-
-```javascript
-var queryInstances = [
-    DB.table('user').insert({name: 'rjy'}),
-    DB.table('user').insert({name: 'rjy1'})
-];
-DB.transaction(queryInstances, false); // params two means execute NOT senquential. Set true to execute sql in order. Default is false.
-```
-

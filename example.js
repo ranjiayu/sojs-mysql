@@ -1,13 +1,24 @@
 require('sojs');
 
 var options = {
-    poolOn: false,
+    // 默认连接池配置
+    pool: {
+        acquireTimeout: 3600,
+        waitForConnections: true,
+        connectionLimit: 100,
+        queueLimit: 0
+    },
     connection: {
         host: 'localhost',
         port: 3306,
         user: 'root',
         password: '123456',
         database: 'test',
+        // 以下是默认配置
+        charset: 'UTF8_GENERAL_CI',
+        timezone: 'local',
+        connectTimeout: 10000,
+        stringifyObjects: false,
         debug: false
     }
 };
