@@ -111,7 +111,6 @@ sojs.define({
     },
     buildSql: function () {
         var sql = '';
-        console.log(this.conditions);
         for (var i = 0; i < this.conditions.length; i ++) {
             var c = this.conditions[i];
             if (!c.sql) {
