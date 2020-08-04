@@ -61,6 +61,25 @@ queryInstance.where('column__like', 'abc') // column like 'abc'
 queryInstance.where('column0', 1).orWhere('column1', 2) // column = 1 or column1 = 2
 queryInstance.notWhere('column', 'xyz') // column != 'xyz'
 
+// where组使用回调函数来嵌套条件，一个回调函数相当于给这些条件加上 (  )
+
+console.log(queryInstance
+.table('user')
+.select(['name'])
+.where('a', 1)
+.where(function (q) {
+    q.where('b', 2);
+    q.orWhere('c', 3);
+    q.where(function (q1) {
+        q1.where('e', 5);
+        q1.where('f', 6);
+    })
+})
+.where('d', 4)
+.statement);
+
+// 生成语句：SELECT `name` FROM user  WHERE `a` = 1 AND (`b` = 2 OR `c` = 3 AND (`e` = 5 AND `f` = 6)) AND `d` = 4
+
 // ORDER BY
 
 queryInstance.orderBy('column', 'asc');

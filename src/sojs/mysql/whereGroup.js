@@ -8,7 +8,7 @@ sojs.define({
     conditions: [],
     args: [],
     where: function (field, value, relation) {
-        relation = relation || 'and';
+        relation = relation || 'AND';
         if (typeof(field) === 'string') {
             var fieldAndOpr = field.split('__');
             // field
@@ -26,14 +26,16 @@ sojs.define({
                 opr: opr,
                 relation: relation
             });
-        } else if (typeof(field) === 'object') {
-            // if field is 
-            if (field.__proto__ && field.__proto__.__full === 'sojs.mysql.whereGroup') {
-                this.conditions.push({
-                    group: field,
-                    relation: relation
-                });
-            }
+        } else if (typeof(field) === 'function') {
+            // 如果是函数, 则创建一个whereGroup, 构造完整where语句, 然后加上括号
+            var fn = field;
+            var _tmp = sojs.create('sojs.mysql.whereGroup');
+            fn(_tmp);
+            var sql = _tmp.buildSql();
+            this.conditions.push({
+                opr: relation,
+                sql: sql
+            });
         }
     },
     orWhere: function (field, value) {
@@ -109,16 +111,16 @@ sojs.define({
     },
     buildSql: function () {
         var sql = '';
+        console.log(this.conditions);
         for (var i = 0; i < this.conditions.length; i ++) {
             var c = this.conditions[i];
-            if (i != 0) {
-                sql += ' ' + c.relation + ' ';
-            }
-            if (c.group) {
-                sql += '(' + c.condition.buildSql() + ')';
-                this.args = this.args.concat(c.args);
-            } else {
+            if (!c.sql) {
+                if (i != 0) {
+                    sql += ' ' + c.relation + ' ';
+                }
                 sql += this.dumpCondition(c.field, c.opr, c.value);
+            } else {
+                sql += ' ' + c.opr + ' (' + c.sql + ')';
             }
         }
         return sql;
