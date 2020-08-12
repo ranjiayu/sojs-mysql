@@ -99,7 +99,7 @@ sojs.define({
                                     iterate();
                                 } else {
                                     resolve(result.slice(0, -1));
-                                    // connection.end();
+                                    connection.release();
                                 }
                                 return;
                             };
@@ -110,7 +110,7 @@ sojs.define({
                                 .catch(function (err) {
                                     reject(err);
                                     connection.rollback(function (err) {
-                                        // connection.end();
+                                        connection.release();
                                     });
                                 });
                             } else {
@@ -119,7 +119,7 @@ sojs.define({
                                 .catch(function (err) {
                                     reject(err);
                                     connection.rollback(function (err) {
-                                        // connection.end();
+                                        connection.release();
                                     });
                                 });
                             }
@@ -133,11 +133,11 @@ sojs.define({
                         .then(commitPromise)
                         .then(function (result) {
                             resolve(result);
-                            // connection.end();
+                            connection.release();
                         }).catch(function (err) {
                             reject(err);
                             connection.rollback(function (err) {
-                                // connection.end();
+                                connection.release();
                             });
                         });
                     }
